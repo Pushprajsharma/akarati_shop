@@ -5,9 +5,7 @@ const dbName = process.env.MONGODB_DB || "khata_app";
 if (!uri) throw new Error("Please define MONGODB_URI in .env.local");
 
 declare global {
-  // eslint-disable-next-line no-var
   var _mongoClientPromise: Promise<MongoClient> | undefined;
-  // eslint-disable-next-line no-var
   var _mongoIndexesPromise: Promise<void> | undefined;
 }
 
