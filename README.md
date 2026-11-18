@@ -93,3 +93,6 @@ Balance = opening balance + debit entries - credit entries.
 - `/invoice/[id]`
 
 API routes are under `/api`.
+
+
+Initaiting deployment
