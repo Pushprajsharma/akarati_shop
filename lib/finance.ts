@@ -4,7 +4,7 @@ export function roundMoney(value: number) {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-export function calculateBalance(openingBalance: number, transactions: Array<{ transactionType: TransactionType; amount: number }>) {
+export function calculateBalance(openingBalance: number, transactions: Array<{ transactionType: unknown; amount: unknown }>) {
   const debit = transactions.filter(t => t.transactionType === "DEBIT").reduce((s, t) => s + Number(t.amount), 0);
   const credit = transactions.filter(t => t.transactionType === "CREDIT").reduce((s, t) => s + Number(t.amount), 0);
   return {

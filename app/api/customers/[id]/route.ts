@@ -15,7 +15,8 @@ export async function GET(_request: NextRequest, context: Context) {
     const customer = await customers.findOne({ _id: new ObjectId(id) });
     if (!customer) return NextResponse.json({ error: "Customer not found." }, { status: 404 });
     const txs = await (await getCollection("transactions")).find({ customerId: id }).sort({ transactionDate: 1, createdAt: 1, entryOrder: 1 }).toArray();
-    return NextResponse.json({ ...customer, _id: id, ...calculateBalance(Number(customer.openingBalance || 0), txs as any) });
+    const balanceTransactions = txs.map(tx => ({ transactionType: tx.transactionType, amount: tx.amount }));
+    return NextResponse.json({ ...customer, _id: id, ...calculateBalance(Number(customer.openingBalance || 0), balanceTransactions) });
   } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Unable to load customer" }, { status: 500 }); }
 }
 

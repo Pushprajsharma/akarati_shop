@@ -1,17 +1,19 @@
 "use client";
 import Link from "next/link";
-import { useEffect,useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/http";
 import { formatINR } from "@/lib/finance";
 
 type LedgerRow={_id:string;transactionType:string;entryCategory:string;referenceId?:string;description:string;transactionDate:string;debit:number;credit:number;balance:number};
+type Customer={_id:string;name:string;mobile:string;address:string;openingBalance:number};
+type LedgerData={customer:Customer;summary:{totalDebit:number;totalCredit:number;pendingAmount:number};rows:LedgerRow[]};
 export default function CustomerPage(){
  const params=useParams<{id:string}>();const id=params.id;
- const [data,setData]=useState<any>(null);const [error,setError]=useState("");
+ const [data,setData]=useState<LedgerData|null>(null);const [error,setError]=useState("");
  const [form,setForm]=useState({transactionType:"DEBIT",amount:"",description:"",transactionDate:new Date().toISOString().slice(0,10)});
- async function load(){try{setData(await api(`/api/customers/${id}/ledger`));setError("");}catch(e){setError(e instanceof Error?e.message:"Unable to load passbook");}}
- useEffect(()=>{if(id)load();},[id]);
+ const load=useCallback(async()=>{try{setData(await api<LedgerData>(`/api/customers/${id}/ledger`));setError("");}catch(e){setError(e instanceof Error?e.message:"Unable to load passbook");}},[id]);
+ useEffect(()=>{if(id)void load();},[id,load]);
  async function add(e:React.FormEvent){e.preventDefault();try{await api("/api/transactions",{method:"POST",body:JSON.stringify({...form,customerId:id,transactionDate:new Date(`${form.transactionDate}T12:00:00`).toISOString()})});setForm({...form,amount:"",description:""});await load();}catch(e){setError(e instanceof Error?e.message:"Transaction failed");}}
  if(!data)return <main className="container">{error?<p className="error">{error}</p>:"Loading passbook..."}</main>;
  const customer=data.customer;const rows:LedgerRow[]=data.rows;

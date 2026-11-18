@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { getDb, getCollection } from "@/lib/db";
+import { getCollection } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { roundMoney } from "@/lib/finance";
 

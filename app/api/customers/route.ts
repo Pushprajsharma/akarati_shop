@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
 import { getCollection } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { calculateBalance, roundMoney } from "@/lib/finance";
@@ -12,7 +11,8 @@ export async function GET() {
     const rows = await customers.find({ isActive: { $ne: false } }).sort({ name: 1 }).toArray();
     const result = await Promise.all(rows.map(async c => {
       const txs = await transactions.find({ customerId: c._id.toString() }).toArray();
-      return { ...c, _id: c._id.toString(), ...calculateBalance(Number(c.openingBalance || 0), txs as any) };
+      const balanceTransactions = txs.map(tx => ({ transactionType: tx.transactionType, amount: tx.amount }));
+      return { ...c, _id: c._id.toString(), ...calculateBalance(Number(c.openingBalance || 0), balanceTransactions) };
     }));
     return NextResponse.json(result);
   } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Unable to load customers" }, { status: 500 }); }
