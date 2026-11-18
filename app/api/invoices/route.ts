@@ -26,11 +26,16 @@ export async function POST(request: NextRequest) {
     if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 100) return NextResponse.json({ error: "Add between 1 and 100 invoice items." }, { status: 400 });
     const items = body.items.map((item: any) => {
       const productName = String(item.productName || "").trim();
-      const amount = Number(item.amount);
-      if (!productName || !Number.isFinite(amount) || amount <= 0) throw new Error("Each item needs a product name and a positive amount.");
-      return { productName, amount: roundMoney(amount) };
+      const quantity = Number(item.quantity ?? 1);
+      const unitPrice = roundMoney(Number(item.unitPrice ?? item.amount));
+      const amount = roundMoney(quantity * unitPrice);
+      if (!productName || !Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(unitPrice) || unitPrice <= 0 || !Number.isFinite(amount) || amount <= 0) {
+        throw new Error("Each item needs a product name, a positive quantity, and a positive per-unit price.");
+      }
+      return { productName, quantity, unitPrice, amount };
     });
     const totalAmount = roundMoney(items.reduce((sum: number, item: any) => sum + item.amount, 0));
+    if (!Number.isFinite(totalAmount) || totalAmount <= 0) return NextResponse.json({ error: "Invoice total must be greater than zero." }, { status: 400 });
     const invoiceDate = body.invoiceDate ? new Date(body.invoiceDate) : new Date();
     if (Number.isNaN(invoiceDate.getTime())) return NextResponse.json({ error: "Invalid invoice date." }, { status: 400 });
 
@@ -49,7 +54,29 @@ export async function POST(request: NextRequest) {
       const previousBalance = roundMoney(Number(customer.openingBalance || 0) + debit - credit);
       const closingBalance = paymentStatus === "UNPAID" ? roundMoney(previousBalance + totalAmount) : previousBalance;
       const now = new Date();
-      const invoiceNumber = `INV-${now.getTime()}-${new ObjectId().toString().slice(-5).toUpperCase()}`;
+      const counters = db.collection<{ _id: string; baseSequence: number; sequence: number }>("counters");
+      const existingCounter = await counters.findOne({ _id: "invoice-number" }, { session });
+      let baseSequence = 0;
+      if (!existingCounter) {
+        const existingCount = await invoices.countDocuments({}, { session });
+        const numberedInvoices = await invoices.find(
+          { invoiceNumber: /^INV-\d+$/ },
+          { projection: { invoiceNumber: 1 }, session }
+        ).toArray();
+        const highestExistingNumber = numberedInvoices.reduce((highest, invoice) => {
+          const number = Number(invoice.invoiceNumber.slice(4));
+          return Number.isSafeInteger(number) ? Math.max(highest, number) : highest;
+        }, 0);
+        baseSequence = Math.max(existingCount, highestExistingNumber);
+      }
+      await counters.updateOne(
+        { _id: "invoice-number" },
+        { $setOnInsert: { baseSequence }, $inc: { sequence: 1 } },
+        { upsert: true, session }
+      );
+      const counter = await counters.findOne({ _id: "invoice-number" }, { session });
+      if (!counter) throw new Error("Unable to allocate an invoice number.");
+      const invoiceNumber = `INV-${String(counter.baseSequence + counter.sequence).padStart(4, "0")}`;
       const invoiceDoc = {
         invoiceNumber, customerId, customerName: customer.name, customerMobile: customer.mobile || "",
         invoiceDate, totalAmount, paymentStatus, notes: String(body.notes || "").trim(),

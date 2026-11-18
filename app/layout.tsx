@@ -3,7 +3,7 @@ import "./globals.css";
 import { Nav } from "@/components/Nav";
 
 export const metadata: Metadata = {
-  title: "Khata Manager",
+  title: "Aakarati Mobile",
   description: "Customer ledger and invoice management"
 };
 

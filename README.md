@@ -1,4 +1,4 @@
-# Khata Manager — Next.js + MongoDB
+# Aakarati Mobile — Next.js + MongoDB
 
 A single-admin customer khata/passbook and invoice application.
 

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ObjectId } from "mongodb";
-import { getCollection } from "@/lib/db";
+import { ClientSession, ObjectId } from "mongodb";
+import { getCollection, getDb, getMongoClient } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { calculateBalance } from "@/lib/finance";
 
@@ -34,4 +34,31 @@ export async function PATCH(request: NextRequest, context: Context) {
     if (!result.matchedCount) return NextResponse.json({ error: "Customer not found." }, { status: 404 });
     return NextResponse.json({ success: true });
   } catch (e) { return NextResponse.json({ error: e instanceof Error ? e.message : "Unable to update customer" }, { status: 500 }); }
+}
+
+export async function DELETE(_request: NextRequest, context: Context) {
+  let session: ClientSession | undefined;
+  try {
+    await requireAdmin();
+    const { id } = await context.params;
+    if (!ObjectId.isValid(id)) return NextResponse.json({ error: "Invalid customer ID." }, { status: 400 });
+    const db = await getDb();
+    session = (await getMongoClient()).startSession();
+    let deleted = false;
+    await session.withTransaction(async () => {
+      const customers = db.collection("customers");
+      const customer = await customers.findOne({ _id: new ObjectId(id) }, { session });
+      if (!customer) return;
+      await db.collection("invoices").deleteMany({ customerId: id }, { session });
+      await db.collection("transactions").deleteMany({ customerId: id }, { session });
+      await customers.deleteOne({ _id: new ObjectId(id) }, { session });
+      deleted = true;
+    });
+    if (!deleted) return NextResponse.json({ error: "Customer not found." }, { status: 404 });
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    return NextResponse.json({ error: e instanceof Error ? e.message : "Unable to delete customer" }, { status: 500 });
+  } finally {
+    await session?.endSession();
+  }
 }

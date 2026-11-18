@@ -11,10 +11,12 @@ export default function CustomersPage() {
   const [error,setError] = useState("");
   const [form,setForm] = useState({name:"",mobile:"",address:"",openingBalance:"0"});
   const [busy,setBusy] = useState(false);
+  const [deletingCustomerId,setDeletingCustomerId] = useState("");
   async function load() { try { setCustomers(await api<Customer[]>("/api/customers")); setError(""); } catch(e) { setError(e instanceof Error?e.message:"Load failed"); } }
   useEffect(()=>{ void load(); },[]);
   const filtered = useMemo(()=>customers.filter(c=>`${c.name} ${c.mobile}`.toLowerCase().includes(search.toLowerCase())),[customers,search]);
   async function create(e:React.FormEvent) { e.preventDefault(); setBusy(true); setError(""); try { await api("/api/customers",{method:"POST",body:JSON.stringify(form)}); setForm({name:"",mobile:"",address:"",openingBalance:"0"}); await load(); } catch(e) {setError(e instanceof Error?e.message:"Save failed");} finally{setBusy(false);} }
+  async function removeCustomer(customer:Customer) { if(!window.confirm(`Permanently delete ${customer.name}, including all their invoices and ledger entries? This cannot be undone.`))return; setDeletingCustomerId(customer._id);setError("");try{await api(`/api/customers/${customer._id}`,{method:"DELETE"});await load();}catch(e){setError(e instanceof Error?e.message:"Customer deletion failed");}finally{setDeletingCustomerId("");} }
   return <main className="container">
     <div className="row"><div><h1>Customers</h1><p className="muted">Manage customer accounts and outstanding balances.</p></div><Link className="btn" href="/invoices">Create invoice</Link></div>
     {error && <p className="error">{error}</p>}
@@ -29,7 +31,7 @@ export default function CustomersPage() {
       <section className="card"><div className="row"><h2>Customer list</h2><span className="badge">{filtered.length} customers</span></div>
         <input placeholder="Search name or mobile..." value={search} onChange={e=>setSearch(e.target.value)}/>
         <div className="table-wrap"><table><thead><tr><th>Customer</th><th>Mobile</th><th>Pending</th><th></th></tr></thead><tbody>
-        {filtered.map(c=><tr key={c._id}><td><strong>{c.name}</strong></td><td>{c.mobile||"—"}</td><td className="amount">{formatINR(c.pendingAmount)}</td><td><Link className="btn secondary" href={`/customers/${c._id}`}>Passbook</Link></td></tr>)}
+        {filtered.map(c=><tr key={c._id}><td><strong>{c.name}</strong></td><td>{c.mobile||"—"}</td><td className="amount">{formatINR(c.pendingAmount)}</td><td><div className="actions"><Link className="btn secondary" href={`/customers/${c._id}`}>Passbook</Link><button type="button" className="btn danger" disabled={deletingCustomerId===c._id} onClick={()=>removeCustomer(c)}>{deletingCustomerId===c._id?"Deleting...":"Delete"}</button></div></td></tr>)}
         {!filtered.length && <tr><td colSpan={4} className="muted">No customers found.</td></tr>}
         </tbody></table></div>
       </section>

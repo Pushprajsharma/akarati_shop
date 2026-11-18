@@ -12,7 +12,7 @@ export function Nav() {
     router.refresh();
   }
   return <header className="topbar">
-    <Link className="brand" href="/">Khata Manager</Link>
+    <Link className="brand" href="/">Aakarati Mobile</Link>
     <nav className="nav">
       <Link href="/">Customers</Link>
       <Link href="/invoices">Invoices</Link>
