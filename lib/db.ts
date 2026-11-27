@@ -24,10 +24,16 @@ export async function getDb(): Promise<Db> {
     global._mongoIndexesPromise = Promise.all([
       db.collection("customers").createIndex({ name: 1 }),
       db.collection("customers").createIndex({ mobile: 1 }),
+      db.collection("customers").createIndex({ createdAt: -1 }),
       db.collection("transactions").createIndex({ customerId: 1, transactionDate: 1, createdAt: 1, entryOrder: 1 }),
+      db.collection("transactions").createIndex({ createdAt: -1, transactionType: 1 }),
       db.collection("transactions").createIndex({ invoiceId: 1 }),
       db.collection("invoices").createIndex({ customerId: 1, invoiceDate: -1 }),
-      db.collection("invoices").createIndex({ invoiceNumber: 1 }, { unique: true })
+      db.collection("invoices").createIndex({ createdAt: -1 }),
+      db.collection("invoices").createIndex({ invoiceNumber: 1 }, { unique: true }),
+      db.collection("dashboardActivity").createIndex({ createdAt: -1 }),
+      db.collection("invoiceShares").createIndex({ tokenHash: 1 }, { unique: true }),
+      db.collection("invoiceShares").createIndex({ invoiceId: 1 })
     ]).then(() => undefined);
   }
   await global._mongoIndexesPromise;

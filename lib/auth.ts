@@ -51,6 +51,8 @@ export function unauthorized() {
 }
 
 export async function middlewareAuth(request: NextRequest) {
+  const path = request.nextUrl.pathname;
+  if (/^\/shared-invoice\/[A-Za-z0-9_-]{43}$/.test(path)) return NextResponse.next();
   const token = request.cookies.get(COOKIE_NAME)?.value;
   let valid = false;
   if (token) {
@@ -59,7 +61,6 @@ export async function middlewareAuth(request: NextRequest) {
       valid = payload.role === "admin";
     } catch { valid = false; }
   }
-  const path = request.nextUrl.pathname;
   if (!valid && path !== "/login" && !path.startsWith("/api/auth/")) {
     if (path.startsWith("/api/")) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     return NextResponse.redirect(new URL("/login", request.url));

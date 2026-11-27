@@ -11,7 +11,7 @@ export async function GET() {
     const rows = await customers.find({ isActive: { $ne: false } }).sort({ name: 1 }).toArray();
     const result = await Promise.all(rows.map(async c => {
       const txs = await transactions.find({ customerId: c._id.toString() }).toArray();
-      const balanceTransactions = txs.map(tx => ({ transactionType: tx.transactionType, amount: tx.amount }));
+       const balanceTransactions = txs.map(tx => ({ transactionType: tx.transactionType, amount: tx.amount }));
       return { ...c, _id: c._id.toString(), ...calculateBalance(Number(c.openingBalance || 0), balanceTransactions) };
     }));
     return NextResponse.json(result);
