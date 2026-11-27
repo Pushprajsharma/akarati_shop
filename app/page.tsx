@@ -151,7 +151,7 @@ export default function Home() {
     </section>
 
     <section>
-      <h2 className="dashboard-section-title">Today's business activity</h2>
+      <h2 className="dashboard-section-title">Today&apos;s business activity</h2>
       <div className="dashboard-metrics activity-metrics">
         <MetricCard label="Invoices created" value={`${today.invoiceCount}`} detail={formatINR(today.invoiceValue)}/>
         <MetricCard label="Paid invoices" value={`${today.paidInvoiceCount}`} detail={formatINR(today.paidInvoiceValue)}/>
